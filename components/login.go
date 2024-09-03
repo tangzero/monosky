@@ -2,7 +2,6 @@ package components
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -11,7 +10,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/keybase/go-keychain"
 )
 
 const Logo = `
@@ -119,7 +117,7 @@ func (login *Login) DoLogin() tea.Msg {
 	password := login.form.GetString("password")
 	token := login.form.GetString("token")
 
-	output, err := atproto.ServerCreateSession(context.Background(), Client, &atproto.ServerCreateSession_Input{
+	output, err := atproto.ServerCreateSession(context.Background(), DefaultClient.Client, &atproto.ServerCreateSession_Input{
 		Identifier:      identifier,
 		Password:        password,
 		AuthFactorToken: &token,
@@ -157,28 +155,14 @@ func (login *Login) HandleError(err error) tea.Cmd {
 }
 
 // HandlerSucessfulLogin handles successful login storing the session token
-// TODO: add error handling
 func (login *Login) HandlerSucessfulLogin(session *atproto.ServerCreateSession_Output) tea.Cmd {
-	Client.Auth = &xrpc.AuthInfo{
+	DefaultClient.Auth = &xrpc.AuthInfo{
 		AccessJwt:  session.AccessJwt,
 		RefreshJwt: session.RefreshJwt,
 		Handle:     session.Handle,
 		Did:        session.Did,
 	}
-
-	data, _ := json.Marshal(Client.Auth)
-
-	authItem := keychain.NewItem()
-	authItem.SetSecClass(keychain.SecClassGenericPassword)
-	authItem.SetService("Monosky")
-	authItem.SetAccount(session.Handle)
-	authItem.SetAuthenticationType(keychain.AuthenticationTypeKey)
-	authItem.SetData(data)
-	authItem.SetAccessible(keychain.AccessibleWhenUnlocked)
-
-	keychain.DeleteItem(authItem)
-	keychain.AddItem(authItem)
-
+	DefaultClient.SaveAuthInfo()
 	return nil
 }
 
