@@ -2,15 +2,16 @@ package components
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/xrpc"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/keybase/go-keychain"
 )
 
 const Logo = `
@@ -73,26 +74,7 @@ func (login *Login) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case error:
 		return login, login.HandleError(msg)
 	case *atproto.ServerCreateSession_Output:
-		Client.Auth = &xrpc.AuthInfo{
-			AccessJwt:  msg.AccessJwt,
-			RefreshJwt: msg.RefreshJwt,
-			Handle:     msg.Handle,
-			Did:        msg.Did,
-		}
-
-		// // TODO: remove this later
-		// output, err := bsky.FeedGetTimeline(context.Background(), Client, "", "", 10)
-		// if err != nil {
-		// 	return login, login.HandleError(err)
-		// }
-		//
-		// for _, post := range output.Feed {
-		// 	switch record := post.Post.Record.Val.(type) {
-		// 	case *bsky.FeedPost:
-		// 		fmt.Printf("%s: %s\n", post.Post.Author.Handle, record.Text)
-		// 	}
-		// }
-		return login, nil
+		return login, login.HandlerSucessfulLogin(msg)
 	}
 
 	form, cmd := login.form.Update(msg)
@@ -172,6 +154,32 @@ func (login *Login) HandleError(err error) tea.Cmd {
 	}
 
 	return cmd
+}
+
+// HandlerSucessfulLogin handles successful login storing the session token
+// TODO: add error handling
+func (login *Login) HandlerSucessfulLogin(session *atproto.ServerCreateSession_Output) tea.Cmd {
+	Client.Auth = &xrpc.AuthInfo{
+		AccessJwt:  session.AccessJwt,
+		RefreshJwt: session.RefreshJwt,
+		Handle:     session.Handle,
+		Did:        session.Did,
+	}
+
+	data, _ := json.Marshal(Client.Auth)
+
+	authItem := keychain.NewItem()
+	authItem.SetSecClass(keychain.SecClassGenericPassword)
+	authItem.SetService("Monosky")
+	authItem.SetAccount(session.Handle)
+	authItem.SetAuthenticationType(keychain.AuthenticationTypeKey)
+	authItem.SetData(data)
+	authItem.SetAccessible(keychain.AccessibleWhenUnlocked)
+
+	keychain.DeleteItem(authItem)
+	keychain.AddItem(authItem)
+
+	return nil
 }
 
 func required(field string) func(value string) error {
