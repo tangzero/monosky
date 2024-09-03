@@ -2,46 +2,69 @@ package components
 
 import (
 	"fmt"
-	"os"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
-	"golang.org/x/term"
 )
 
+const Logo = `
+_|      _|                                          _|                
+_|_|  _|_|    _|_|    _|_|_|      _|_|      _|_|_|  _|  _|    _|    _|
+_|  _|  _|  _|    _|  _|    _|  _|    _|  _|_|      _|_|      _|    _|
+_|      _|  _|    _|  _|    _|  _|    _|      _|_|  _|  _|    _|    _|
+_|      _|    _|_|    _|    _|    _|_|    _|_|_|    _|    _|    _|_|_|
+                                                                    _|
+                                                                _|_|  
+
+                                    Bluesky for monospaced environemts
+`
+
+// Login is a component that handles user login
 type Login struct {
-	form  *huh.Form
-	width int
+	BaseComponent
+	LoggedIn      bool
+	TokenRequired bool
+	form          *huh.Form
+	username      huh.Field
+	password      huh.Field
+	token         huh.Field
 }
 
-func NewLogin() Login {
-	width, _, _ := term.GetSize(int(os.Stdout.Fd()))
-	return Login{
-		form: huh.NewForm(
-			huh.NewGroup(
-				huh.NewInput().
-					Key("username").
-					Title("Username"),
-				huh.NewInput().
-					Key("password").
-					Title("Password").
-					EchoMode(huh.EchoModePassword),
-			),
-		),
-		width: width,
+// NewLogin creates a new Login component
+func NewLogin() *Login {
+	username := huh.NewInput().
+		Key("username").
+		Title("Username").
+		Validate(required("Username"))
+
+	password := huh.NewInput().
+		Key("password").
+		Title("Password").
+		Validate(required("Password")).
+		EchoMode(huh.EchoModePassword)
+
+	token := huh.NewInput().
+		Key("token").
+		Title("Auth Token").
+		Validate(required("Auth Token"))
+
+	return &Login{
+		form:     huh.NewForm(huh.NewGroup(username, password)), // initialy only username and password are shown
+		username: username,
+		password: password,
+		token:    token,
 	}
 }
 
-func (login Login) Init() tea.Cmd {
-	return tea.Batch(func() tea.Msg { return tea.ClearScreen() }, login.form.Init())
+// OnResize is called when the terminal is resized
+func (login *Login) Init() tea.Cmd {
+	return login.form.Init()
 }
 
-func (login Login) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if m, ok := msg.(tea.KeyMsg); ok && m.String() == "ctrl+c" {
-		return login, tea.Quit
-	}
-
+// Update is called when a message is received
+func (login *Login) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	form, cmd := login.form.Update(msg)
 	if f, ok := form.(*huh.Form); ok {
 		login.form = f
@@ -50,32 +73,39 @@ func (login Login) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return login, cmd
 }
 
-func (login Login) View() string {
+// View is called when the component should render
+func (login *Login) View() string {
 	if login.form.State == huh.StateCompleted {
 		username := login.form.GetString("username")
 		password := login.form.GetString("password")
 		return fmt.Sprintf("username: %s\npassword: %s", username, password)
 	}
 
-	dialogBoxStyle := lipgloss.NewStyle().
+	logo := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#874BF4")).
+		Render(Logo)
+	width, _ := lipgloss.Size(logo)
+
+	form := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#874BFD")).
-		Padding(1, 0).
-		BorderTop(true).
-		BorderLeft(true).
-		BorderRight(true).
-		BorderBottom(true)
+		Width(width).
+		Padding(1).
+		Render(login.form.View())
 
-	form := lipgloss.NewStyle().Width(80).Render(login.form.View())
-	title := lipgloss.NewStyle().Width(40).Background(subtle).Align(lipgloss.Center).Render("Login")
-	ui := lipgloss.JoinVertical(lipgloss.Center, title, form)
-
-	return lipgloss.Place(login.width, 20,
-		lipgloss.Center, lipgloss.Center,
-		dialogBoxStyle.Render(ui),
-		// lipgloss.WithWhitespaceChars("😄"),
-		// lipgloss.WithWhitespaceForeground(subtle),
+	return lipgloss.Place(
+		login.Width, login.Height,
+		lipgloss.Center, 0.8,
+		lipgloss.JoinVertical(lipgloss.Center, logo, form),
 	)
 }
 
-var subtle = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
+func required(field string) func(value string) error {
+	return func(value string) error {
+		if strings.TrimSpace(value) == "" {
+			return fmt.Errorf("%s is required", field)
+		}
+		return nil
+	}
+}

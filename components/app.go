@@ -9,28 +9,27 @@ import (
 // App is the main application component
 type App struct {
 	BaseComponent
-	// login Login
+	login *Login
 }
 
 // NewApp creates a new App component
 func NewApp() *App {
-	// width, height, _ := term.GetSize(int(os.Stdout.Fd()))
-	// var app App
-	// app.OnResize(width, height)
-	return &App{}
+	return &App{
+		login: NewLogin(),
+	}
 }
 
 // Init is called when the component is initialized
 func (app *App) Init() tea.Cmd {
-	// TODO: initialize the child components
-	return tea.Batch(app.ClearScreen)
+	loginCmd := app.login.Init()
+	return tea.Batch(app.ClearScreen, loginCmd)
 }
 
 // OnResize is called when the terminal is resized
 func (app *App) OnResize(width, height int) tea.Cmd {
-	baseCmd := app.BaseComponent.OnResize(width, height)
-	// TODO: resize the child components
-	return tea.Batch(baseCmd, app.ClearScreen)
+	app.BaseComponent.OnResize(width, height)
+	loginCmd := app.login.OnResize(width, height)
+	return tea.Batch(app.ClearScreen, loginCmd)
 }
 
 // Update is called when a message is received
@@ -45,12 +44,17 @@ func (app *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return app, app.OnResize(msg.Width, msg.Height)
 	}
 
-	// TODO: update the child components
-	return app, nil
+	loginModel, loginCmd := app.login.Update(msg)
+	app.login = loginModel.(*Login)
+
+	return app, tea.Batch(loginCmd)
 }
 
 // View is called when the component should render
 func (app *App) View() string {
+	if !app.login.LoggedIn {
+		return app.login.View()
+	}
 	// TODO: render the child components
 	return fmt.Sprintf("width: %d, height: %d", app.Width, app.Height)
 }
