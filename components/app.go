@@ -1,8 +1,6 @@
 package components
 
 import (
-	"fmt"
-
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -52,11 +50,7 @@ func (app *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View is called when the component should render
 func (app *App) View() string {
-	if !app.login.LoggedIn {
-		return app.login.View()
-	}
-	// TODO: render the child components
-	return fmt.Sprintf("width: %d, height: %d", app.Width, app.Height)
+	return app.login.View()
 }
 
 // ClearScreen clears the screen
