@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	p := tea.NewProgram(components.NewLogin())
+	p := tea.NewProgram(components.NewApp())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Ouch!!! %v", err)
 		os.Exit(1)
