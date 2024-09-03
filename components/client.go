@@ -1,8 +1,10 @@
 package components
 
 import (
+	"context"
 	"encoding/json"
 
+	"github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/keybase/go-keychain"
 )
@@ -34,6 +36,20 @@ func (client *Client) LoadAuthInfo() {
 	}
 
 	client.Auth = &auth
+	client.Auth.AccessJwt = auth.RefreshJwt // TODO: send a PR to fix this issue when refreshing the session
+	output, err := atproto.ServerRefreshSession(context.Background(), client.Client)
+	if err != nil {
+		client.Auth = nil
+		return
+	}
+
+	client.Auth = &xrpc.AuthInfo{
+		AccessJwt:  output.AccessJwt,
+		RefreshJwt: output.RefreshJwt,
+		Handle:     output.Handle,
+		Did:        output.Did,
+	}
+	client.SaveAuthInfo()
 }
 
 // SaveAuthInfo saves the authentication info to the keychain
