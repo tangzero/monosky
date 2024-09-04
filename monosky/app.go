@@ -1,7 +1,13 @@
 package monosky
 
 import (
+	"context"
+	"log"
+
+	"github.com/bluesky-social/indigo/api/bsky"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/samber/lo"
 )
 
 const Logo = `
@@ -19,6 +25,7 @@ _|      _|    _|_|    _|    _|    _|_|    _|_|_|    _|    _|    _|_|_|
 // App is the main application component
 type App struct {
 	Component
+	posts []*Post
 }
 
 // NewApp creates a new App component
@@ -28,7 +35,7 @@ func NewApp() *App {
 
 // Init is called when the component is initialized
 func (app *App) Init() tea.Cmd {
-	return DefaultClient.LoadAuthInfo()
+	return tea.Batch(DefaultClient.LoadAuthInfo(), app.FetchTimeline)
 }
 
 // Update is called when a message is received
@@ -36,16 +43,40 @@ func (app *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	component, cmd := app.Component.Update(msg)
 	app.Component = *component.(*Component)
 
-	switch msg.(type) {
+	switch msg := msg.(type) {
 	case AskToLoginMsg:
 		login := NewLogin(app)
 		return login, login.Init()
+	case *bsky.FeedGetTimeline_Output:
+		return app, app.HandleTimelineChange(msg)
 	}
 
+	// return app, tea.Batch(cmd, app.FetchTimeline)
 	return app, cmd
 }
 
 // View is called when the component should render
 func (app *App) View() string {
-	return Logo
+	if app.posts == nil {
+		return Logo
+	}
+	return lipgloss.JoinVertical(lipgloss.Top, lo.Map(app.posts, func(post *Post, _ int) string { return post.View() })...)
+}
+
+func (app *App) FetchTimeline() tea.Msg {
+	log.Println("Fetching timeline")
+	output, err := bsky.FeedGetTimeline(context.Background(), DefaultClient.xrpc, "", "", 5)
+	if err != nil {
+		return err
+	}
+	return output
+}
+
+func (app *App) HandleTimelineChange(output *bsky.FeedGetTimeline_Output) tea.Cmd {
+	log.Println("Handling timeline change")
+	app.posts = make([]*Post, len(output.Feed))
+	for i, post := range output.Feed {
+		app.posts[i] = NewPost(post)
+	}
+	return nil
 }
