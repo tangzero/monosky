@@ -26,7 +26,8 @@ _|      _|    _|_|    _|    _|    _|_|    _|_|_|    _|    _|    _|_|_|
 
 // Login is a component that handles user login
 type Login struct {
-	BaseComponent
+	Component
+	parent     tea.Model
 	form       *huh.Form
 	identifier huh.Field
 	password   huh.Field
@@ -35,7 +36,7 @@ type Login struct {
 }
 
 // NewLogin creates a new Login component
-func NewLogin() *Login {
+func NewLogin(parent tea.Model) *Login {
 	username := huh.NewInput().
 		Key("identifier").
 		Title("Identifier").
@@ -53,6 +54,7 @@ func NewLogin() *Login {
 		Validate(required("Sign in code"))
 
 	return &Login{
+		parent:     parent,
 		form:       huh.NewForm(huh.NewGroup(username, password)),
 		identifier: username,
 		password:   password,
@@ -68,19 +70,22 @@ func (login *Login) Init() tea.Cmd {
 
 // Update is called when a message is received
 func (login *Login) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	component, cmd := login.Component.Update(msg)
+	login.Component = *component.(*Component)
+
 	switch msg := msg.(type) {
 	case error:
 		return login, login.HandleError(msg)
 	case *atproto.ServerCreateSession_Output:
-		return login, login.HandlerSucessfulLogin(msg)
+		return login.parent, login.HandleSucessfulLogin(msg)
 	}
 
-	form, cmd := login.form.Update(msg)
+	form, formCmd := login.form.Update(msg)
 	if f, ok := form.(*huh.Form); ok {
 		login.form = f
 	}
 
-	return login, cmd
+	return login, tea.Batch(cmd, formCmd)
 }
 
 // View is called when the component should render
@@ -103,7 +108,7 @@ func (login *Login) View() string {
 		Render(login.error)
 
 	return lipgloss.Place(
-		login.Width, login.Height,
+		WindowWidth, WindowHeight,
 		lipgloss.Center, 0.8,
 		lipgloss.JoinVertical(lipgloss.Center, logo, form, error),
 	)
@@ -117,7 +122,7 @@ func (login *Login) DoLogin() tea.Msg {
 	password := login.form.GetString("password")
 	token := login.form.GetString("token")
 
-	output, err := atproto.ServerCreateSession(context.Background(), DefaultClient.Client, &atproto.ServerCreateSession_Input{
+	output, err := atproto.ServerCreateSession(context.Background(), DefaultClient.xrpc, &atproto.ServerCreateSession_Input{
 		Identifier:      identifier,
 		Password:        password,
 		AuthFactorToken: &token,
@@ -154,15 +159,14 @@ func (login *Login) HandleError(err error) tea.Cmd {
 	return cmd
 }
 
-// HandlerSucessfulLogin handles successful login storing the session token
-func (login *Login) HandlerSucessfulLogin(session *atproto.ServerCreateSession_Output) tea.Cmd {
-	DefaultClient.Auth = &xrpc.AuthInfo{
-		AccessJwt:  session.AccessJwt,
-		RefreshJwt: session.RefreshJwt,
-		Handle:     session.Handle,
-		Did:        session.Did,
-	}
-	DefaultClient.SaveAuthInfo()
+// HandleSucessfulLogin handles successful login storing the session token
+func (login *Login) HandleSucessfulLogin(output *atproto.ServerCreateSession_Output) tea.Cmd {
+	DefaultClient.SaveAuthInfo(&xrpc.AuthInfo{
+		AccessJwt:  output.AccessJwt,
+		RefreshJwt: output.RefreshJwt,
+		Handle:     output.Handle,
+		Did:        output.Did,
+	})
 	return nil
 }
 

@@ -2,39 +2,39 @@ package components
 
 import tea "github.com/charmbracelet/bubbletea"
 
-// Component is an interface that all components must implement
-type Component interface {
-	tea.Model
-	OnResize(width, height int) tea.Cmd
-}
+var (
+	WindowWidth  int
+	WindowHeight int
+)
 
-// Ensure BaseComponent implements Component
-var _ Component = new(BaseComponent)
+// Ensure Component implements tea.Model
+var _ tea.Model = new(Component)
 
-// BaseComponent is a base struct for all components
-type BaseComponent struct {
-	Width  int
-	Height int
-}
-
-// OnResize is called when the terminal is resized
-func (c *BaseComponent) OnResize(width, height int) tea.Cmd {
-	c.Width = width
-	c.Height = height
-	return nil
-}
+// Component is a base struct for all components
+type Component struct{}
 
 // Init is called when the component is initialized
-func (c *BaseComponent) Init() tea.Cmd {
+func (c *Component) Init() tea.Cmd {
 	return nil
 }
 
 // Update is called when a message is received
-func (c *BaseComponent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (c *Component) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c":
+			return c, tea.Quit
+		}
+	case tea.WindowSizeMsg:
+		WindowWidth = msg.Width
+		WindowHeight = msg.Height
+		return c, tea.ClearScreen
+	}
 	return c, nil
 }
 
 // View is called when the component should render
-func (c *BaseComponent) View() string {
+func (c *Component) View() string {
 	return ""
 }
