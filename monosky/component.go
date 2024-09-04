@@ -1,4 +1,4 @@
-package components
+package monosky
 
 import tea "github.com/charmbracelet/bubbletea"
 

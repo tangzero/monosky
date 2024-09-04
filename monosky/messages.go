@@ -1,3 +1,3 @@
-package components
+package monosky
 
 type AskToLoginMsg struct{}

@@ -5,11 +5,11 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/tangzero/monosky/components"
+	"github.com/tangzero/monosky/monosky"
 )
 
 func main() {
-	p := tea.NewProgram(components.NewApp())
+	p := tea.NewProgram(monosky.NewApp())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Ouch!!! %v", err)
 		os.Exit(1)

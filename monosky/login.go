@@ -1,4 +1,4 @@
-package components
+package monosky
 
 import (
 	"context"
@@ -11,18 +11,6 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
-
-const Logo = `
-_|      _|                                          _|                
-_|_|  _|_|    _|_|    _|_|_|      _|_|      _|_|_|  _|  _|    _|    _|
-_|  _|  _|  _|    _|  _|    _|  _|    _|  _|_|      _|_|      _|    _|
-_|      _|  _|    _|  _|    _|  _|    _|      _|_|  _|  _|    _|    _|
-_|      _|    _|_|    _|    _|    _|_|    _|_|_|    _|    _|    _|_|_|
-                                                                    _|
-                                                                _|_|  
-
-                                    Bluesky for monospaced environemts
-`
 
 // Login is a component that handles user login
 type Login struct {

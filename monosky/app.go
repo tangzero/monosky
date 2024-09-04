@@ -1,8 +1,20 @@
-package components
+package monosky
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+const Logo = `
+_|      _|                                          _|                
+_|_|  _|_|    _|_|    _|_|_|      _|_|      _|_|_|  _|  _|    _|    _|
+_|  _|  _|  _|    _|  _|    _|  _|    _|  _|_|      _|_|      _|    _|
+_|      _|  _|    _|  _|    _|  _|    _|      _|_|  _|  _|    _|    _|
+_|      _|    _|_|    _|    _|    _|_|    _|_|_|    _|    _|    _|_|_|
+                                                                    _|
+                                                                _|_|  
+
+                                    Bluesky for monospaced environemts
+`
 
 // App is the main application component
 type App struct {
