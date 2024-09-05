@@ -74,10 +74,4 @@ func (post *Post) embed() string {
 			Render(err.Error())
 	}
 	return asciiArt
-
-	// return lipgloss.NewStyle().
-	// 	Bold(true).
-	// 	Margin(1, 0).
-	// 	Foreground(lipgloss.Color("#FF00FF")).
-	// 	Render()
 }

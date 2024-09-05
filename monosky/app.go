@@ -2,7 +2,6 @@ package monosky
 
 import (
 	"context"
-	"log"
 
 	"github.com/bluesky-social/indigo/api/bsky"
 	tea "github.com/charmbracelet/bubbletea"
@@ -51,20 +50,21 @@ func (app *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return app, app.HandleTimelineChange(msg)
 	}
 
-	// return app, tea.Batch(cmd, app.FetchTimeline)
 	return app, cmd
 }
 
 // View is called when the component should render
 func (app *App) View() string {
 	if app.posts == nil {
-		return Logo
+		return lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#874BF4")).
+			Render(Logo)
 	}
 	return lipgloss.JoinVertical(lipgloss.Top, lo.Map(app.posts, func(post *Post, _ int) string { return post.View() })...)
 }
 
 func (app *App) FetchTimeline() tea.Msg {
-	log.Println("Fetching timeline")
 	output, err := bsky.FeedGetTimeline(context.Background(), DefaultClient.xrpc, "", "", 5)
 	if err != nil {
 		return err
@@ -73,7 +73,6 @@ func (app *App) FetchTimeline() tea.Msg {
 }
 
 func (app *App) HandleTimelineChange(output *bsky.FeedGetTimeline_Output) tea.Cmd {
-	log.Println("Handling timeline change")
 	app.posts = make([]*Post, len(output.Feed))
 	for i, post := range output.Feed {
 		app.posts[i] = NewPost(post)
