@@ -50,6 +50,11 @@ func (app *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return login, login.Init()
 	case *bsky.FeedGetTimeline_Output:
 		return app, app.HandleTimelineChange(msg)
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "f5":
+			return app, app.FetchTimeline
+		}
 	}
 
 	return app, cmd
