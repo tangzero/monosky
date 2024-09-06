@@ -2,12 +2,16 @@ package monosky
 
 import (
 	"reflect"
+	"regexp"
+	"strings"
 
 	"github.com/bluesky-social/indigo/api/bsky"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/TheZoraiz/ascii-image-converter/aic_package"
 )
+
+var cleanUserNameRegex = regexp.MustCompile("[[:^ascii:]]")
 
 type Post struct {
 	Component
@@ -23,7 +27,7 @@ func (post *Post) View() string {
 	case *bsky.FeedPost:
 		return lipgloss.NewStyle().
 			Width(60).
-			Border(lipgloss.RoundedBorder()).
+			Border(lipgloss.RoundedBorder(), true, false, false, true).
 			Padding(0, 1).
 			Render(lipgloss.JoinVertical(lipgloss.Top, post.author(), record.Text, post.embed()))
 	}
@@ -34,11 +38,15 @@ func (post *Post) displayName() string {
 	if post.Post.Author.DisplayName == nil {
 		return ""
 	}
+	displayName := strings.TrimSpace(cleanUserNameRegex.ReplaceAllLiteralString(*post.Post.Author.DisplayName, ""))
+	if displayName == "" {
+		return displayName
+	}
 	return lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("#FFFFFF")).
 		Margin(0, 1, 1, 0).
-		Render(*post.Post.Author.DisplayName)
+		Render(displayName)
 }
 
 func (post *Post) handle() string {

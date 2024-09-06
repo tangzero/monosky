@@ -65,7 +65,7 @@ func (app *App) View() string {
 }
 
 func (app *App) FetchTimeline() tea.Msg {
-	output, err := bsky.FeedGetTimeline(context.Background(), DefaultClient.xrpc, "", "", 5)
+	output, err := bsky.FeedGetTimeline(context.Background(), DefaultClient.xrpc, "", "", 10)
 	if err != nil {
 		return err
 	}
