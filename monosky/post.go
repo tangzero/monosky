@@ -6,9 +6,8 @@ import (
 	"strings"
 
 	"github.com/bluesky-social/indigo/api/bsky"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-
-	"github.com/TheZoraiz/ascii-image-converter/aic_package"
 )
 
 var cleanUserNameRegex = regexp.MustCompile("[[:^ascii:]]")
@@ -16,10 +15,19 @@ var cleanUserNameRegex = regexp.MustCompile("[[:^ascii:]]")
 type Post struct {
 	Component
 	*bsky.FeedDefs_FeedViewPost
+	image *Image
 }
 
 func NewPost(post *bsky.FeedDefs_FeedViewPost) *Post {
 	return &Post{FeedDefs_FeedViewPost: post}
+}
+
+func (post *Post) Init() tea.Cmd {
+	if post.Post.Embed != nil && post.Post.Embed.EmbedImages_View != nil && len(post.Post.Embed.EmbedImages_View.Images) > 0 {
+		post.image = NewImage(post.Post.Embed.EmbedImages_View.Images[0].Fullsize)
+		return post.image.Load
+	}
+	return nil
 }
 
 func (post *Post) View() string {
@@ -60,26 +68,8 @@ func (post *Post) author() string {
 }
 
 func (post *Post) embed() string {
-	if post.Post.Embed == nil || post.Post.Embed.EmbedImages_View == nil || len(post.Post.Embed.EmbedImages_View.Images) == 0 {
-		return ""
+	if post.image != nil {
+		return post.image.View()
 	}
-	image := post.Post.Embed.EmbedImages_View.Images[0]
-
-	flags := aic_package.Flags{
-		Width:               58,
-		Colored:             true,
-		CharBackgroundColor: true,
-		Braille:             false,
-		Dither:              false,
-	}
-
-	asciiArt, err := aic_package.Convert(image.Fullsize, flags)
-	if err != nil {
-		return lipgloss.NewStyle().
-			Bold(true).
-			Margin(1, 0).
-			Foreground(lipgloss.Color("#FF0000")).
-			Render(err.Error())
-	}
-	return asciiArt
+	return ""
 }

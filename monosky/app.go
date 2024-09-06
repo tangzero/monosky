@@ -43,6 +43,8 @@ func (app *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	app.Component = *component.(*Component)
 
 	switch msg := msg.(type) {
+	case error:
+		panic(msg)
 	case AskToLoginMsg:
 		login := NewLogin(app)
 		return login, login.Init()
@@ -65,7 +67,7 @@ func (app *App) View() string {
 }
 
 func (app *App) FetchTimeline() tea.Msg {
-	output, err := bsky.FeedGetTimeline(context.Background(), DefaultClient.xrpc, "", "", 10)
+	output, err := bsky.FeedGetTimeline(context.Background(), DefaultClient.xrpc, "", "", 5)
 	if err != nil {
 		return err
 	}
@@ -73,9 +75,11 @@ func (app *App) FetchTimeline() tea.Msg {
 }
 
 func (app *App) HandleTimelineChange(output *bsky.FeedGetTimeline_Output) tea.Cmd {
+	var cmds tea.Cmd
 	app.posts = make([]*Post, len(output.Feed))
 	for i, post := range output.Feed {
 		app.posts[i] = NewPost(post)
+		cmds = tea.Batch(cmds, app.posts[i].Init())
 	}
-	return nil
+	return cmds
 }
